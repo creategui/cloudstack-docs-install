@@ -34,7 +34,7 @@ High level overview of the process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This runbook will focus on building a CloudStack cloud using KVM with CentOS 
-6.4 with NFS storage on a flat layer-2 network utilizing layer-3 network 
+6.5 with NFS storage on a flat layer-2 network utilizing layer-3 network 
 isolation (aka Security Groups), and doing it all on a single piece of 
 hardware.
 
@@ -51,10 +51,10 @@ Prerequisites
 
 To complete this runbook you'll need the following items:
 
-#. At least one computer which supports hardware virtualization.
+#. At least one computer which supports and has enabled hardware virtualization.
 
-#. The `CentOS 6.4 x86_64 minimal install CD 
-   <http://mirrors.kernel.org/centos/6.4/isos/x86_64/CentOS-6.4-x86_64-minimal.iso>`_
+#. The `CentOS 6.5 x86_64 minimal install CD 
+   <http://mirrors.kernel.org/centos/6/isos/x86_64/>`_
 
 #. A /24 network with the gateway being at xxx.xxx.xxx.1, no DHCP should be on 
    this network and none of the computers running CloudStack will have a 
@@ -71,7 +71,7 @@ CloudStack. We will go over the steps to prepare now.
 Operating System
 ~~~~~~~~~~~~~~~~
 
-Using the CentOS 6.4 x86_64 minimal install ISO, you'll need to install CentOS 
+Using the CentOS 6.5 x86_64 minimal install ISO, you'll need to install CentOS 
 on your hardware. The defaults will generally be acceptable for this 
 installation.
 
@@ -256,7 +256,7 @@ insert the following information.
 
    [cloudstack]
    name=cloudstack
-   baseurl=http://cloudstack.apt-get.eu/rhel/4.3/
+   baseurl=http://cloudstack.apt-get.eu/rhel/4.4/
    enabled=1
    gpgcheck=0
 
@@ -270,7 +270,7 @@ start out by installing nfs-utils.
 
 .. sourcecode:: bash
 
-   # yum install nfs-utils
+   # yum -y install nfs-utils
 
 We now need to configure NFS to serve up two different shares. This is handled 
 comparatively easily in the /etc/exports file. You should ensure that it has 
@@ -278,8 +278,8 @@ the following content:
 
 .. sourcecode:: bash
 
-   /secondary *(rw,async,no_root_squash)
-   /primary *(rw,async,no_root_squash)
+   /secondary *(rw,async,no_root_squash,no_subtree_check)
+   /primary *(rw,async,no_root_squash,no_subtree_check)
 
 You will note that we specified two directories that don't exist (yet) on the 
 system. We'll go ahead and create those directories and set permissions 
@@ -388,7 +388,7 @@ following command:
 
 .. sourcecode:: bash
 
-   # yum -y install cloud-client
+   # yum -y install cloudstack-management
 
 With the application itself installed we can now setup the database, we'll do 
 that with the following command and options:
@@ -422,7 +422,11 @@ the system VMs images.
 
 .. sourcecode:: bash
   
-  # /usr/share/cloudstack-common/scripts/storage/secondary/cloud-install-sys-tmplt -m /secondary -u http://download.cloud.com/templates/4.3/systemvm64template-2014-01-14-master-kvm.qcow2.bz2 -h kvm -F
+   /usr/share/cloudstack-common/scripts/storage/secondary/cloud-install-sys-tmplt \
+   -m /secondary \
+   -u http://cloudstack.apt-get.eu/systemvm/4.4/systemvm64template-4.4.1-7-kvm.qcow2.bz2 \
+   -h kvm -F
+
 
 That concludes our setup of the management server. We still need to configure 
 CloudStack, but we will do that after we get our hypervisor set up.
@@ -467,7 +471,7 @@ afterwards we'll need to configure a few things.
 
 .. sourcecode:: bash
 
-   # yum -y install cloud-agent
+   # yum -y install cloudstack-agent
 
 
 KVM Configuration
@@ -527,6 +531,13 @@ and should already be installed.
 
 KVM configuration complete
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For the sake of completeness you should check if KVM is running OK on your machine:
+   .. sourcecode:: bash
+   
+      # lsmod | grep kvm
+      kvm_intel              55496  0
+      kvm                   337772  1 kvm_intel
+
 That concludes our installation and configuration of KVM, and we'll now move 
 to using the CloudStack UI for the actual configuration of our cloud.
 
@@ -652,3 +663,4 @@ Now, click Launch and your cloud should begin setup - it may take several
 minutes depending on your internet connection speed for setup to finalize.
 
 That's it, you are done with installation of your Apache CloudStack cloud.
+
